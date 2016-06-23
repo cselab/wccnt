@@ -13,7 +13,7 @@ WCCNT is collection of TCL scripts to analyze/visualize trajectories of CNT and 
 * INSTALL
 ==========
 
-1.- download the directory wccnt into your local computer
+1.- download the directory wccnt into your local computer 
 2.- open VMD, then TCL terminal
 3.- type :
 
@@ -26,6 +26,8 @@ WCCNT is collection of TCL scripts to analyze/visualize trajectories of CNT and 
     package require wccnt
 
 That is it.
+
+You can also add "lappend ::auto_path $DIR" in your .vmdrc file, which is usually located in your home directory.
 
 
 
