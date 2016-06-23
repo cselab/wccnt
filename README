@@ -1,0 +1,46 @@
+
+* INFO
+==========
+
+WCCNT  stands for "Water Confinement in Carbon NanoTubes"
+
+WCCNT is a TCL package to be used within VMD software (www.ks.uiuc.edu/Research/vmd/)
+
+WCCNT is collection of TCL script to analyze/visualize trajectories of CNT and water.  The simulations are usually perfomred with LAMMPS.
+
+
+
+* INSTALL
+==========
+
+1.- download the directory wccnt0.1 into your local computer
+2.- open VMD, then TCL terminal
+3.- type :
+
+    lappend ::auto_path $DIR
+
+    where $DIR is the local path to wccnt0.1 directory
+
+4.- type :
+
+    package require wccnt
+
+That is it.
+
+
+
+* CONTRIBUTORS:
+===============
+
+- Gengyun Li
+- Ermioni Papadopoulou
+- Eduardo Cruz-Chu
+
+
+* QUESTIONS:
+=============
+
+cruzchue@ethz.ch
+
+
+
