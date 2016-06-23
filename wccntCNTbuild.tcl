@@ -57,8 +57,8 @@ namespace eval ::wccnt:: {
 	
 	
 	# check non-default variables    
-	set checkNINDEX    [ info exists psfFile ];
-	set checkMINDEX    [ info exists pdbFile ];
+	set checkNINDEX    [ info exists nIndex ];
+	set checkMINDEX    [ info exists mIndex ];
 	set checkLENGTHNM  [ info exists refPointsFile ];
 	set checkOUTNAME   [ info exists outName ];
 	
