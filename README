@@ -2,11 +2,11 @@
 * INFO
 ==========
 
-WCCNT  stands for "Water Confinement in Carbon NanoTubes"
+WCCNT stands for "Water Confinement in Carbon NanoTubes"
 
-WCCNT is a TCL package to be used within VMD software (www.ks.uiuc.edu/Research/vmd/)
+WCCNT is a TCL package to be used as a plugin in VMD software (www.ks.uiuc.edu/Research/vmd/)
 
-WCCNT is collection of TCL script to analyze/visualize trajectories of CNT and water.  The simulations are usually performed with LAMMPS.
+WCCNT is collection of TCL scripts to analyze/visualize trajectories of CNT and water.  The simulations are usually performed with LAMMPS.
 
 
 
