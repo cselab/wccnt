@@ -484,7 +484,6 @@ namespace eval ::wccnt:: {
     
 	    package require psfgen
 	    resetpsf
-	    
 	    psfcontext reset;
 	    topology $outName.top;
 	    segment  $segName { pdb $outName.TMP.pdb } 
@@ -493,6 +492,7 @@ namespace eval ::wccnt:: {
 	    writepsf $outName.psf;
 	    writepdb $outName.pdb;
 	    resetpsf;
+	    psfcontext reset;
 	    
 	    file delete $outName.TMP.psf;
 	    file delete $outName.TMP.pdb;
