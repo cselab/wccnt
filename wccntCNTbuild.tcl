@@ -24,7 +24,7 @@ namespace eval ::wccnt:: {
 		-segName  : segname  [ default : CNT ]
 		-resName  : resname  [ default : CNT ]
 		-resID    : resid    [ default : 1 ]
-		-outName : output name		
+		-outName  : output name		
 	    }
 	    return
 	}
@@ -74,12 +74,6 @@ namespace eval ::wccnt:: {
 	if { $checkOUTNAME < 1 } {
 	    error "error: CNTbuild: need to define variable -outName"
 	}
-	
-	
-	
-	#### DEBUG ####
-	puts "MESSAGE :: perZ $perZ"
-	
 	
 	
 	# -----------------
@@ -136,8 +130,7 @@ namespace eval ::wccnt:: {
 	    $selAll delete;
 	    mol delete $molID;
 	    
-	    
-	    
+	    	    
 	    # 2.- remove improper terms
 	    # --------------------------
 	    
@@ -165,11 +158,8 @@ namespace eval ::wccnt:: {
 	    # 3.- periodic bonds
 	    # -------------------
 	    
-	    puts "MESSAGE :: perZ $perZ"
 	    if { $perZ > 0 } {
 		
-		puts "MESSAGE :: in perZ $perZ loop"
-	    
 		# load molecule
 		mol new $outName.NonImpr.psf type psf waitfor all;
 		set molID3 [ molinfo top ];
@@ -178,9 +168,10 @@ namespace eval ::wccnt:: {
 		# up and down rings
 		set selAll [ atomselect $molID3 all ];
 		foreach { cenX cenY cenZ } [ measure center $selAll ] { break };
+		$selAll delete;		
 		set selRingUp   [ atomselect $molID3 "(numbonds == 2) and (z > $cenZ)" ];
 		set selRingDown [ atomselect $molID3 "(numbonds == 2) and (z < $cenZ)" ];
-		
+
 		# move down ring close to up ring
 		set zPer     [ molinfo $molID3 get c ];
 		set moveUp   "0 0 $zPer";
@@ -209,35 +200,31 @@ namespace eval ::wccnt:: {
 		$selRingDown moveby $moveDown;
 		
 		# add bonds
-		package require topotools
-		
-		# DEBUG
-		#puts "MESSAGE :: $perBonds"
 		foreach eachPair $perBonds {
 		    foreach { indexLeft indexRight } $eachPair { break };
-		    topo addbond $indexLeft $indexRight -molid $molID3
-		    #puts "MESSAGE :: $indexLeft $indexRight "
+		    topo -molid $molID3 addbond $indexLeft $indexRight
 		}
 		
 		# output PSF/PDB
+		set selAll [ atomselect $molID3 all ];
 		animate write psf $outName.Per.psf sel $selAll waitfor all $molID3;
 		animate write pdb $outName.Per.pdb sel $selAll waitfor all $molID3;
 		
 		# clean
-		mol delete $molID3;
 		$selAll delete;
 		$selRingUp delete;
 		$selRingDown delete;
 		unset perBonds;
+		mol delete $molID3;
 		file delete $outName.NonImpr.psf;
 		file delete $outName.NonImpr.pdb;
-	
+		
 	    } else {	
 		file rename $outName.NonImpr.psf $outName.Per.psf;
 		file rename $outName.NonImpr.pdb $outName.Per.pdb;
 	    }
     
-    
+
 	    # 4.- regenerate angles/dihedrals
 	    # --------------------------------
 	    package require psfgen
@@ -277,9 +264,8 @@ namespace eval ::wccnt:: {
 	    animate write pdb $outName.pdb sel $selAll waitfor all $molID4;
 
 	    # clean
+	    $selAll delete;	    
 	    mol delete $molID4
-	    $selAll delete;
-	    
 	}
 	
 	
@@ -366,8 +352,8 @@ namespace eval ::wccnt:: {
 	    # load structure
 	    mol new $psfFile type psf waitfor all;
 	    set molID1  [ molinfo top ];
-	    mol addfile  $pdbFile type pdb molid $molID1 waitfor all;
-	    
+	    mol addfile $pdbFile type pdb molid $molID1 waitfor all;	    
+
 	    # PBC information
 	    set aPBC     [ molinfo $molID1 get a ];
 	    set bPBC     [ molinfo $molID1 get b ];
@@ -401,15 +387,14 @@ namespace eval ::wccnt:: {
 		$selOne delete;
 		incr i;
 	    }
-	    
+
 	    # output molecule with new info
 	    animate write psf $outName.TMP.psf sel $selAll waitfor all $molID1;
 	    animate write pdb $outName.TMP.pdb sel $selAll waitfor all $molID1;
 	    $selAll delete;
 	    mol delete $molID1;
 	    unset listIndex;
-	    
-	    
+	    	    
 	    
 	    # 2.- topology info
 	    # ------------------
@@ -478,7 +463,7 @@ namespace eval ::wccnt:: {
 	    
 	    # output bonds
 	    foreach valPAIRunique $bondList {
-		set valPAIRopen [ lindex $valPAIRunique 0 ];
+		#>>set valPAIRopen [ lindex $valPAIRunique 0 ];
 		set valA [  lindex $valPAIRunique 0 ];
 		set valB [  lindex $valPAIRunique 1 ];
 		puts $outTOP "BOND $valA $valB";
@@ -501,9 +486,11 @@ namespace eval ::wccnt:: {
 	    package require psfgen
 	    resetpsf
 	    
+	    psfcontext reset;
 	    topology $outName.top;
 	    segment  $segName { pdb $outName.TMP.pdb } 
 	    coordpdb $outName.TMP.pdb $segName;
+	    regenerate angles dihedrals;
 	    writepsf $outName.psf;
 	    writepdb $outName.pdb;
 	    resetpsf;
