@@ -59,7 +59,7 @@ namespace eval ::wccnt:: {
 	# check non-default variables    
 	set checkNINDEX    [ info exists nIndex ];
 	set checkMINDEX    [ info exists mIndex ];
-	set checkLENGTHNM  [ info exists refPointsFile ];
+	set checkLENGTHNM  [ info exists lengthNM ];
 	set checkOUTNAME   [ info exists outName ];
 	
 	if { $checkNINDEX < 1 } {
@@ -74,6 +74,11 @@ namespace eval ::wccnt:: {
 	if { $checkOUTNAME < 1 } {
 	    error "error: CNTbuild: need to define variable -outName"
 	}
+	
+	
+	
+	#### DEBUG ####
+	puts "MESSAGE :: perZ $perZ"
 	
 	
 	
@@ -148,7 +153,7 @@ namespace eval ::wccnt:: {
     
 	    # output PSF/PDB
 	    animate write psf $outName.NonImpr.psf sel $selAll waitfor all $molID2;
-	    animate write pdb $outName.NonImpr.pdb sel $selAll waitfor all $molID2;
+	    animate write pdb $outName.NonImpr.pdb sel $selAll waitfor all $molID2;	    
 	    
 	    # clean
 	    $selAll delete;
@@ -160,8 +165,11 @@ namespace eval ::wccnt:: {
 	    # 3.- periodic bonds
 	    # -------------------
 	    
+	    puts "MESSAGE :: perZ $perZ"
 	    if { $perZ > 0 } {
 		
+		puts "MESSAGE :: in perZ $perZ loop"
+	    
 		# load molecule
 		mol new $outName.NonImpr.psf type psf waitfor all;
 		set molID3 [ molinfo top ];
@@ -203,9 +211,12 @@ namespace eval ::wccnt:: {
 		# add bonds
 		package require topotools
 		
+		# DEBUG
+		#puts "MESSAGE :: $perBonds"
 		foreach eachPair $perBonds {
 		    foreach { indexLeft indexRight } $eachPair { break };
 		    topo addbond $indexLeft $indexRight -molid $molID3
+		    #puts "MESSAGE :: $indexLeft $indexRight "
 		}
 		
 		# output PSF/PDB
@@ -217,6 +228,7 @@ namespace eval ::wccnt:: {
 		$selAll delete;
 		$selRingUp delete;
 		$selRingDown delete;
+		unset perBonds;
 		file delete $outName.NonImpr.psf;
 		file delete $outName.NonImpr.pdb;
 	
@@ -266,7 +278,8 @@ namespace eval ::wccnt:: {
 
 	    # clean
 	    mol delete $molID4
-	    $selAll delete;	    
+	    $selAll delete;
+	    
 	}
 	
 	
@@ -540,6 +553,16 @@ namespace eval ::wccnt:: {
 	# clean
 	file delete  $outName.NoTop.psf;
 	file delete  $outName.NoTop.pdb;
+
+	unset nIndex;
+	unset mIndex;
+	unset lengthNM;
+	unset perZ;
+	unset outName;
+	unset segName;
+	unset resName;
+	unset resID;
+
 	        
     }   
 }
