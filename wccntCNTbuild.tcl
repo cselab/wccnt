@@ -463,7 +463,6 @@ namespace eval ::wccnt:: {
 	    
 	    # output bonds
 	    foreach valPAIRunique $bondList {
-		#>>set valPAIRopen [ lindex $valPAIRunique 0 ];
 		set valA [  lindex $valPAIRunique 0 ];
 		set valB [  lindex $valPAIRunique 1 ];
 		puts $outTOP "BOND $valA $valB";
