@@ -21,9 +21,10 @@ namespace eval ::wccnt:: {
 		-mIndex   : m chiral index
 		-lengthNM : CNT length (in nm)
 		-perZ     : periodic bonds along Z-axis. 0=no, 1=yes [ default : 0 ]
-		-segName  : segname  [ default : CNT ]
-		-resName  : resname  [ default : CNT ]
-		-resID    : resid    [ default : 1 ]
+		-segName  : segname   [ default : CNT ]
+		-resName  : resname   [ default : CNT ]
+		-atomType : atom type [ default : CA ]
+		-resID    : resid     [ default : 1 ]
 		-outName  : output name		
 	    }
 	    return
@@ -32,10 +33,11 @@ namespace eval ::wccnt:: {
 
 
 	# Set the defaults
-	set perZ 0;
-	set segName CNT
-	set resName CNT 
-	set resID   1
+	set perZ     0;
+	set segName  CNT;
+	set resName  CNT;
+	set atomType CA;
+	set resID    1;
 	
 	
 	# Parse options
@@ -49,6 +51,7 @@ namespace eval ::wccnt:: {
 		"-perZ"     { set perZ     $val; incr argnum; }
 		"-segName"  { set segName  $val; incr argnum; }
 		"-resName"  { set resName  $val; incr argnum; }
+		"-atomType" { set atomType $val; incr argnum; }
 		"-resID"    { set resID    $val; incr argnum; }
 		"-outName"  { set outName  $val; incr argnum; }
 		default { error "error: CNTbuild: unknown option: $arg" }
@@ -270,7 +273,7 @@ namespace eval ::wccnt:: {
 	
 	
 	
-	proc CNTtop { psfFile pdbFile segName resName resID outName } {
+	proc CNTtop { psfFile pdbFile segName resName resID atomType outName } {
 	    
 	    #
 	    # This script generates a CNT topology
@@ -368,7 +371,7 @@ namespace eval ::wccnt:: {
 	    $selAll set segid   $segName;
 	    $selAll set resname $resName;
 	    $selAll set resid   $resID;
-	    $selAll set type CA;
+	    $selAll set type    $atomType;
 	    $selAll set beta 0;
 	    $selAll set occupancy 0;
 	    
@@ -405,7 +408,7 @@ namespace eval ::wccnt:: {
 	    # output mass/resname
 	    puts $outTOP "31  1";
 	    puts $outTOP " ";
-	    puts $outTOP "MASS     1 CA    12.01100 C";
+	    puts $outTOP "MASS     1 $atomType    12.01100 C";
 	    puts $outTOP " ";
 	    puts $outTOP "AUTO ANGLES DIHE";
 	    puts $outTOP " ";
@@ -424,7 +427,7 @@ namespace eval ::wccnt:: {
 	    foreach index $listIndex {
 		set  selOne  [ atomselect $molID2 "index $index" ];
 		set  nameOne [ $selOne get name ];
-		puts $outTOP "ATOM $nameOne CA      0.00";
+		puts $outTOP "ATOM $nameOne $atomType      0.00";
 		$selOne delete;
 	    }
 	    
@@ -534,8 +537,8 @@ namespace eval ::wccnt:: {
 	CNTper  $nIndex $mIndex $lengthNM $perZ $outName.NoTop
 	
 	# create topology
-	CNTtop $outName.NoTop.psf $outName.NoTop.pdb $segName $resName $resID $outName;
-	
+	CNTtop $outName.NoTop.psf $outName.NoTop.pdb $segName $resName $resID $atomType $outName;
+
 	# clean
 	file delete  $outName.NoTop.psf;
 	file delete  $outName.NoTop.pdb;
@@ -548,6 +551,7 @@ namespace eval ::wccnt:: {
 	unset segName;
 	unset resName;
 	unset resID;
+	unset atomType;
 
 	        
     }   
