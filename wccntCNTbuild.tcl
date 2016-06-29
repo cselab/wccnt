@@ -107,7 +107,52 @@ namespace eval ::wccnt:: {
 	    
 	    
 	    ################## MAIN #################
+
+	    # 0.- procedures
+	    # ---------------
 	    
+	    # procedure to produce string from A to ZZZ
+	    proc chainName3 { numChain2 } {
+		
+		# 475253 = ZZZZ
+		# 18277 = ZZZ
+		# 701 = ZZ 
+		# 26 = Z
+		# more numbers require new design
+		
+		proc chainName { numChain } {
+		    
+		    # template names
+		    set listTemplate "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z";
+		    set lengthTemplate 26;
+		    
+		    set chainName [ lindex $listTemplate  [ expr $numChain%26 ] ];
+		    
+		    set prefixIndex [ expr ($numChain/26) - 1 ];
+		    set prefix [ lindex $listTemplate $prefixIndex ];
+		    
+		    return "$prefix$chainName"	
+		}
+		
+		if { $numChain2 <= 701 } {
+		    # two letters
+		    chainName $numChain2;	
+		} else {
+		    # more than two letters
+		    set num1 [ expr $numChain2 - 702 ];
+		    set perNum [ expr 702 - 26 ];
+		    set num2 [ expr $num1/$perNum ];
+		    set num3  [ expr $num1 - ( $num2 * $perNum ) + 26 ];
+	    
+		    set preLeft [ chainName $num2 ];
+		    set preRight [ chainName $num3 ];
+		    
+		    return "$preLeft$preRight";	
+		}    
+	    }
+	    
+	  
+	    	    
 	    # 1.- create nanotube
 	    # --------------------
 	    
@@ -132,9 +177,45 @@ namespace eval ::wccnt:: {
 	    # clean
 	    $selAll delete;
 	    mol delete $molID;
+
 	    
+	    
+	    # 2.- fix atom names	    
+	    # -------------------	    
+  	    
+	    # load structure
+	    mol new  $outName.NonPer.psf type psf waitfor all;
+	    set molID20  [ molinfo top ];
+	    mol addfile  $outName.NonPer.pdb type pdb molid $molID20 waitfor all;	    
+	    
+	    # rename atom names	    
+	    set selAll [ atomselect $molID20 all ];
+	    set listIndex [ $selAll get index ];
+	    $selAll set resid 1; # only one resid
+
+	    set i 0;
+	    foreach index $listIndex {
+		set selOne [ atomselect $molID20 "index $i" ];
+		
+		# new atom name
+		set newName [ chainName3 $i ];
+		$selOne set name $newName;
+		unset newName;
+		
+		$selOne delete;
+		incr i;
+	    }
+
+	    # output molecule with new info
+	    animate write psf $outName.NonPer.psf sel $selAll waitfor all $molID20;
+	    animate write pdb $outName.NonPer.pdb sel $selAll waitfor all $molID20;
+	    $selAll delete;
+	    mol delete $molID20;
+	    unset listIndex;
 	    	    
-	    # 2.- remove improper terms
+	    
+
+	    # 3.- remove improper terms
 	    # --------------------------
 	    
 	    # load molecule
@@ -156,9 +237,10 @@ namespace eval ::wccnt:: {
 	    mol delete $molID2;
 	    file delete $outName.NonPer.psf;
 	    file delete $outName.NonPer.pdb;
-	    
-	    
-	    # 3.- periodic bonds
+	    	    
+
+
+	    # 4.- periodic bonds
 	    # -------------------
 	    
 	    if { $perZ > 0 } {
@@ -227,12 +309,13 @@ namespace eval ::wccnt:: {
 		file rename $outName.NonImpr.pdb $outName.Per.pdb;
 	    }
     
-
-	    # 4.- regenerate angles/dihedrals
+	    
+	    
+	    # 5.- regenerate angles/dihedrals
 	    # --------------------------------
 	    package require psfgen
-	    
-	    resetpsf    
+	    resetpsf
+	    psfcontext reset;
 	    readpsf  $outName.Per.psf;
 	    coordpdb $outName.Per.pdb;    
 	    regenerate angles dihedrals    
@@ -246,7 +329,7 @@ namespace eval ::wccnt:: {
 	    
 	    
     
-	    # 5.- add PBC info back
+	    # 6.- add PBC info back
 	    # -----------------------
 	    
 	    # load molecule
@@ -304,49 +387,7 @@ namespace eval ::wccnt:: {
 	    # ----------------------------------------
 	    
 	    # defaul values for resName and resID here!!!!!!
-	    
-	    
-	    # procedure to produce string from A to ZZZ
-	    proc chainName3 { numChain2 } {
-		
-		# 475253 = ZZZZ
-		# 18277 = ZZZ
-		# 701 = ZZ 
-		# 26 = Z
-		# more numbers require new design
-		
-		proc chainName { numChain } {
-		    
-		    # template names
-		    set listTemplate "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z";
-		    set lengthTemplate 26;
-		    
-		    set chainName [ lindex $listTemplate  [ expr $numChain%26 ] ];
-		    
-		    set prefixIndex [ expr ($numChain/26) - 1 ];
-		    set prefix [ lindex $listTemplate $prefixIndex ];
-		    
-		    return "$prefix$chainName"	
-		}
-		
-		if { $numChain2 <= 701 } {
-		    # two letters
-		    chainName $numChain2;	
-		} else {
-		    # more than two letters
-		    set num1 [ expr $numChain2 - 702 ];
-		    set perNum [ expr 702 - 26 ];
-		    set num2 [ expr $num1/$perNum ];
-		    set num3  [ expr $num1 - ( $num2 * $perNum ) + 26 ];
-	    
-		    set preLeft [ chainName $num2 ];
-		    set preRight [ chainName $num3 ];
-		    
-		    return "$preLeft$preRight";	
-		}    
-	    }
-	    
-	    
+    
 	    ############## MAIN ################
 	    
 	    # 1.- change molecule info
@@ -375,28 +416,12 @@ namespace eval ::wccnt:: {
 	    $selAll set beta 0;
 	    $selAll set occupancy 0;
 	    
-	    # rename atom names
-	    set listIndex [ $selAll get index ];
-	    
-	    set i 0;
-	    foreach index $listIndex {
-		set selOne [ atomselect $molID1 "index $i" ];
-		
-		# new atom name
-		set newName [ chainName3 $i ];
-		$selOne set name $newName;
-		unset newName;
-		
-		$selOne delete;
-		incr i;
-	    }
 
 	    # output molecule with new info
 	    animate write psf $outName.TMP.psf sel $selAll waitfor all $molID1;
 	    animate write pdb $outName.TMP.pdb sel $selAll waitfor all $molID1;
 	    $selAll delete;
 	    mol delete $molID1;
-	    unset listIndex;
 	    	    
 	    
 	    # 2.- topology info
