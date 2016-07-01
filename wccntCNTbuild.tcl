@@ -17,15 +17,16 @@ namespace eval ::wccnt:: {
 	# Info
 	proc usage {} {
 	    vmdcon -info {usage: wccnt CNTbuild [args...]
-		-nIndex   : n chiral index
-		-mIndex   : m chiral index
-		-lengthNM : CNT length (in nm)
-		-perZ     : periodic bonds along Z-axis. 0=no, 1=yes [ default : 0 ]
-		-segName  : segname   [ default : CNT ]
-		-resName  : resname   [ default : CNT ]
-		-atomType : atom type [ default : CA ]
-		-resID    : resid     [ default : 1 ]
-		-outName  : output name		
+		-nIndex    : n chiral index
+		-mIndex    : m chiral index
+		-lengthNM  : CNT length (in nm)
+		-perZ      : periodic bonds along Z-axis. 0=no, 1=yes [ default : 0 ]
+		-segName   : segname   [ default : CNT ]
+		-resName   : resname   [ default : CNT ]
+		-atomType  : atom type [ default : CA ]
+		-shiftXYZ  : move CNT by a 3D vector  (in nm) [ default : "0 0 0" ]
+		-unitCNTnm : length of CNT resid unit (in nm) [ default : 1 ]
+		-outName   : output name		
 	    }
 	    return
 	}
@@ -33,12 +34,13 @@ namespace eval ::wccnt:: {
 
 
 	# Set the defaults
-	set perZ     0;
-	set segName  CNT;
-	set resName  CNT;
-	set atomType CA;
-	set resID    1;
-	
+	set perZ      0;
+	set segName   CNT;
+	set resName   CNT;
+	set atomType  CA;
+	set shiftXYZ  "0 0 0";
+	set unitCNTnm 1;
+
 	
 	# Parse options
 	for { set argnum 0 } { $argnum < [llength $args] } { incr argnum } {
@@ -52,7 +54,8 @@ namespace eval ::wccnt:: {
 		"-segName"  { set segName  $val; incr argnum; }
 		"-resName"  { set resName  $val; incr argnum; }
 		"-atomType" { set atomType $val; incr argnum; }
-		"-resID"    { set resID    $val; incr argnum; }
+		"-shiftXYZ" { set shiftXYZ $val; incr argnum; }
+		"-unitCNTnm"    { set unitCNTnm    $val; incr argnum; }
 		"-outName"  { set outName  $val; incr argnum; }
 		default { error "error: CNTbuild: unknown option: $arg" }
 	    }
@@ -83,7 +86,7 @@ namespace eval ::wccnt:: {
 	# start procedures
 	# -----------------		
 
-	proc CNTper { nIndex mIndex lengthNM perZ outName} {
+	proc CNTper { nIndex mIndex lengthNM perZ shiftXYZ unitCNTnm segName resName atomType outName } {
 	    
 	    #
 	    # This script creates a periodic CNT
@@ -93,6 +96,8 @@ namespace eval ::wccnt:: {
 	    # mIndex   : m index for CNT - integer
 	    # lengthNM : length in nm - real
 	    # perZ     :  0 for non periodic system; 1 for periodic system - integer
+	    # shiftXYZ :  move CNT by a 3D vector 
+	    # unitCNTnm    :  resid unit, lenght in NM - integer
 	    # outName  : output name
 	    #
 	    # test:
@@ -101,8 +106,10 @@ namespace eval ::wccnt:: {
 	    # set mIndex 24;
 	    # set lengthNM 20;
 	    # set perZ 1; 
+	    # set shiftXYZ "-10 -20 -30";
+	    # set unitCNTnm 2;
 	    # set outName test04per
-	    # CNTper  $nIndex $mIndex $lengthNM $perZ $outName
+	    # CNTper  $nIndex $mIndex $lengthNM $perZ $shiftXYZ $unitCNTnm $outName
 	    #
 	    
 	    
@@ -151,66 +158,126 @@ namespace eval ::wccnt:: {
 		}    
 	    }
 	    
-	  
-	    	    
+	    
+	    
 	    # 1.- create nanotube
 	    # --------------------
+
+	    # small nanotube for resid counting
+	    package require nanotube
+	    nanotube -l $unitCNTnm -n $nIndex -m $mIndex;
+	    set molID0 [ molinfo top ];
+	    set selAll [ atomselect $molID0 all ]
+	    set atomsInRes [ $selAll num ];
+	    $selAll delete;
+	    mol delete $molID0;
 	    
-	    # create molecule
+	    # create CNT
 	    package require nanotube
 	    nanotube -l $lengthNM -n $nIndex -m $mIndex; # generate improper infomation
 	    
-	    # output PSF/PDB
-	    set molID [ molinfo top ];
-	    set selAll [ atomselect $molID all ]
-	    animate write psf $outName.NonPer.psf sel $selAll waitfor all $molID;
-	    animate write pdb $outName.NonPer.pdb sel $selAll waitfor all $molID;
+	    # move CNT
+	    set molID1   [ molinfo top ];
+	    set selAll   [ atomselect $molID1 all ]
+	    set shiftXYZ [ vecscale 10 $shiftXYZ ]
+	    $selAll moveby $shiftXYZ;
+
+	    # output PSF/PDB	    
+	    animate write psf $outName.NonPer.psf sel $selAll waitfor all $molID1;
+	    animate write pdb $outName.NonPer.pdb sel $selAll waitfor all $molID1;
 	    
 	    # pbc information
-	    set aPBC [ molinfo $molID get a ];
-	    set bPBC [ molinfo $molID get b ];
-	    set cPBC [ molinfo $molID get c ];
-	    set alphaPBC [ molinfo $molID get alpha ];
-	    set betaPBC  [ molinfo $molID get beta ];
-	    set gammaPBC [ molinfo $molID get gamma ];
+	    set aPBC     [ molinfo $molID1 get a ];
+	    set bPBC     [ molinfo $molID1 get b ];
+	    set cPBC     [ molinfo $molID1 get c ];
+	    set alphaPBC [ molinfo $molID1 get alpha ];
+	    set betaPBC  [ molinfo $molID1 get beta ];
+	    set gammaPBC [ molinfo $molID1 get gamma ];
 	    
 	    # clean
 	    $selAll delete;
-	    mol delete $molID;
+	    mol delete $molID1;
 
 	    
 	    
-	    # 2.- fix atom names	    
-	    # -------------------	    
+	    # 2.- renaming	    
+	    # -------------------
   	    
 	    # load structure
 	    mol new  $outName.NonPer.psf type psf waitfor all;
-	    set molID20  [ molinfo top ];
-	    mol addfile  $outName.NonPer.pdb type pdb molid $molID20 waitfor all;	    
+	    set molID2  [ molinfo top ];
+	    mol addfile $outName.NonPer.pdb type pdb molid $molID2 waitfor all;	    
 	    
-	    # rename atom names	    
-	    set selAll [ atomselect $molID20 all ];
+	    
+	    # common features
+	    set selAll [ atomselect $molID2 all ];
+	    $selAll set segname $segName;
+	    $selAll set segid   $segName;
+	    $selAll set type    $atomType;
+	    $selAll set beta 0;
+	    $selAll set occupancy 0;
+	    
+	    
+	    # atom names and resids    
 	    set listIndex [ $selAll get index ];
-	    $selAll set resid 1; # only one resid
 
 	    set i 0;
+	    set iName 0;
+	    set iRes 1;
+
 	    foreach index $listIndex {
-		set selOne [ atomselect $molID20 "index $i" ];
-		
-		# new atom name
-		set newName [ chainName3 $i ];
+		# atom name		
+		if { $iName == $atomsInRes } {
+		    set iName 0;
+		}
+		set newName [ chainName3 $iName ];
+
+		# resid
+		set iRes [ expr ($i/$atomsInRes) +1 ]
+
+		# change
+		set selOne [ atomselect $molID2 "index $i" ];
 		$selOne set name $newName;
-		unset newName;
-		
+		$selOne set resid $iRes;
 		$selOne delete;
+
 		incr i;
+		incr iName;
 	    }
 
-	    # output molecule with new info
-	    animate write psf $outName.NonPer.psf sel $selAll waitfor all $molID20;
-	    animate write pdb $outName.NonPer.pdb sel $selAll waitfor all $molID20;
+
+	    # resnames
+	    set residList [ lsort -unique -increasing -integer [ $selAll get resid ] ];
+	    
+	    # number of atoms in resids
+	    set numResidList "";
+	    foreach resid $residList {
+		set selOneRes [ atomselect $molID2 "resid $resid" ];
+		lappend numResidList [ $selOneRes num ];
+		$selOneRes delete;
+	    }	    	    	    
+	    set numFirstResid [ lindex $numResidList 0 ];
+
+	    # add X if there are two different residues
+	    set xChar "X";
+	    set resNameEnd "$resName$xChar"
+
+	    foreach numResid $numResidList resid $residList {
+		set selOneRes [ atomselect $molID2 "resid $resid" ];
+		if { $numResid == $numFirstResid } {		    
+		    $selOneRes set resname $resName;
+		} else {
+		    $selOneRes set resname $resNameEnd;
+		}
+		$selOneRes delete;
+	    }
+
+
+	    # output molecule
+	    animate write psf $outName.NonPer.psf sel $selAll waitfor all $molID2;
+	    animate write pdb $outName.NonPer.pdb sel $selAll waitfor all $molID2;
 	    $selAll delete;
-	    mol delete $molID20;
+	    mol delete $molID2;
 	    unset listIndex;
 	    	    
 	    
@@ -220,23 +287,23 @@ namespace eval ::wccnt:: {
 	    
 	    # load molecule
 	    mol new $outName.NonPer.psf type psf waitfor all;
-	    set molID2   [ molinfo top ];
-	    mol addfile  $outName.NonPer.pdb type pdb molid $molID2 waitfor all;
-	    set selAll   [ atomselect $molID2 all ];
+	    set molID3   [ molinfo top ];
+	    mol addfile  $outName.NonPer.pdb type pdb molid $molID3 waitfor all;
+	    set selAll   [ atomselect $molID3 all ];
 	    
 	    # remove improper terms
 	    package require topotools
-	    topo -molid $molID2 -sel $selAll clearimpropers
+	    topo -molid $molID3 -sel $selAll clearimpropers
     
 	    # output PSF/PDB
-	    animate write psf $outName.NonImpr.psf sel $selAll waitfor all $molID2;
-	    animate write pdb $outName.NonImpr.pdb sel $selAll waitfor all $molID2;	    
+	    animate write psf $outName.NonImpr.psf sel $selAll waitfor all $molID3;
+	    animate write pdb $outName.NonImpr.pdb sel $selAll waitfor all $molID3;	    
 	    
 	    # clean
 	    $selAll delete;
-	    mol delete $molID2;
-	    file delete $outName.NonPer.psf;
-	    file delete $outName.NonPer.pdb;
+	    mol delete $molID3;
+	    file delete -force $outName.NonPer.psf;
+	    file delete -force $outName.NonPer.pdb;
 	    	    
 
 
@@ -247,18 +314,18 @@ namespace eval ::wccnt:: {
 		
 		# load molecule
 		mol new $outName.NonImpr.psf type psf waitfor all;
-		set molID3 [ molinfo top ];
-		mol addfile  $outName.NonImpr.pdb type pdb molid $molID3 waitfor all;
+		set molID4 [ molinfo top ];
+		mol addfile  $outName.NonImpr.pdb type pdb molid $molID4 waitfor all;
 		
 		# up and down rings
-		set selAll [ atomselect $molID3 all ];
+		set selAll [ atomselect $molID4 all ];
 		foreach { cenX cenY cenZ } [ measure center $selAll ] { break };
 		$selAll delete;		
-		set selRingUp   [ atomselect $molID3 "(numbonds == 2) and (z > $cenZ)" ];
-		set selRingDown [ atomselect $molID3 "(numbonds == 2) and (z < $cenZ)" ];
+		set selRingUp   [ atomselect $molID4 "(numbonds == 2) and (z > $cenZ)" ];
+		set selRingDown [ atomselect $molID4 "(numbonds == 2) and (z < $cenZ)" ];
 
 		# move down ring close to up ring
-		set zPer     [ molinfo $molID3 get c ];
+		set zPer     [ molinfo $molID4 get c ];
 		set moveUp   "0 0 $zPer";
 		set moveDown [ vecscale -1 $moveUp ];
 		$selRingDown moveby $moveUp;
@@ -271,7 +338,7 @@ namespace eval ::wccnt:: {
 		set perBonds "";
 		
 		foreach index $indexRingDown {
-		    set nearSel [ atomselect $molID3 "(all within $cutoffCNT of index $index ) and (index $indexRingUp)" ];
+		    set nearSel [ atomselect $molID4 "(all within $cutoffCNT of index $index ) and (index $indexRingUp)" ];
 		    set nearIndex [ $nearSel get index ];
 		    
 		    foreach index2 $nearIndex {
@@ -287,26 +354,26 @@ namespace eval ::wccnt:: {
 		# add bonds
 		foreach eachPair $perBonds {
 		    foreach { indexLeft indexRight } $eachPair { break };
-		    topo -molid $molID3 addbond $indexLeft $indexRight
+		    topo -molid $molID4 addbond $indexLeft $indexRight
 		}
 		
 		# output PSF/PDB
-		set selAll [ atomselect $molID3 all ];
-		animate write psf $outName.Per.psf sel $selAll waitfor all $molID3;
-		animate write pdb $outName.Per.pdb sel $selAll waitfor all $molID3;
+		set selAll [ atomselect $molID4 all ];
+		animate write psf $outName.Per.psf sel $selAll waitfor all $molID4;
+		animate write pdb $outName.Per.pdb sel $selAll waitfor all $molID4;
 		
 		# clean
 		$selAll delete;
 		$selRingUp delete;
 		$selRingDown delete;
 		unset perBonds;
-		mol delete $molID3;
-		file delete $outName.NonImpr.psf;
-		file delete $outName.NonImpr.pdb;
+		mol delete $molID4;
+		file delete -force $outName.NonImpr.psf;
+		file delete -force $outName.NonImpr.pdb;
 		
 	    } else {	
-		file rename $outName.NonImpr.psf $outName.Per.psf;
-		file rename $outName.NonImpr.pdb $outName.Per.pdb;
+		file rename -force $outName.NonImpr.psf $outName.Per.psf;
+		file rename -force $outName.NonImpr.pdb $outName.Per.pdb;
 	    }
     
 	    
@@ -324,8 +391,9 @@ namespace eval ::wccnt:: {
 	    
 	    # clean
 	    resetpsf
-	    file delete $outName.Per.psf;
-	    file delete $outName.Per.pdb;
+	    psfcontext reset;
+	    file delete -force $outName.Per.psf;
+	    file delete -force $outName.Per.pdb;
 	    
 	    
     
@@ -352,53 +420,41 @@ namespace eval ::wccnt:: {
 	    # clean
 	    $selAll delete;	    
 	    mol delete $molID4
+	    
 	}
 	
 	
 	
-	proc CNTtop { psfFile pdbFile segName resName resID atomType outName } {
-	    
+	proc CNTtop { psfFile pdbFile outName } {
+
 	    #
 	    # This script generates a CNT topology
 	    # from a PSF/PDB structure to be used in CHARMM2LAMMPS
 	    #
 	    # psfFile : PSF file
 	    # pdbFile : PDB file
-	    # segName : segname - string up to 4 characters long
 	    # outName : output name
 	    #
 	    # test:
 	    # -----
 	    # set psfFile test04per.psf
 	    # set pdbFile test04per.pdb
-	    # set segName A; # no more than 4 letters
-	    # set resName CNT; # no more than 4 letters
-	    # set resID   1;
 	    # set outName test10;
-	    # CNTtop $psfFile $pdbFile $segName $resName $resID $outName;
-	    #
-	    #
-	    # NOTE: this script renames atoms up to 475253 
-	    #       if you have more atoms, re-write procedure chainName3
+	    # CNTtop $psfFile $pdbFile $outName;
 	    #
 	    
 	    
-	    # 0.- procedures and previous calculations
-	    # ----------------------------------------
-	    
-	    # defaul values for resName and resID here!!!!!!
-    
 	    ############## MAIN ################
 	    
-	    # 1.- change molecule info
-	    # -------------------------
+	    # 1.- molecule info
+	    # --------------------
 	    
 	    # load structure
 	    mol new $psfFile type psf waitfor all;
 	    set molID1  [ molinfo top ];
 	    mol addfile $pdbFile type pdb molid $molID1 waitfor all;	    
 
-	    # PBC information
+	    # PBC info
 	    set aPBC     [ molinfo $molID1 get a ];
 	    set bPBC     [ molinfo $molID1 get b ];
 	    set cPBC     [ molinfo $molID1 get c ];
@@ -406,152 +462,185 @@ namespace eval ::wccnt:: {
 	    set betaPBC  [ molinfo $molID1 get beta ];
 	    set gammaPBC [ molinfo $molID1 get gamma ];
 	    
-	    # rename 
-	    set selAll [ atomselect $molID1 all ];
-	    $selAll set segname $segName;
-	    $selAll set segid   $segName;
-	    $selAll set resname $resName;
-	    $selAll set resid   $resID;
-	    $selAll set type    $atomType;
-	    $selAll set beta 0;
-	    $selAll set occupancy 0;
-	    
-
-	    # output molecule with new info
-	    animate write psf $outName.TMP.psf sel $selAll waitfor all $molID1;
-	    animate write pdb $outName.TMP.pdb sel $selAll waitfor all $molID1;
+	    # segname info
+	    # currently, the script only works with one segment, one atom type
+	    set selAll  [ atomselect $molID1 all ];
+	    set segName [ $selAll get segname ];
+	    set segName [ lsort -unique $segName ];
+	    set segName [ lindex $segName 0 ];   
+	    set atomType [ $selAll get type ];
+	    set atomType [ lsort -unique $atomType ];
+	    set atomType [ lindex $atomType 0 ];
 	    $selAll delete;
-	    mol delete $molID1;
-	    	    
+
+	    # >>>>>>>>>>>>>>>>
+	    # PENDING : this part is designed for a chain with two residues, as my CNT, make it generic for N residues later
+
+	    # resname/resid info	    
+	    set selAll       [ atomselect $molID1 all ];
+	    set listResname  [ lsort -unique [ $selAll get resname ] ];
+	    set lListResname [ llength $listResname ];
+	    set listResid    [ lsort -unique [ $selAll get resid ] ];
+	    set listResid    [ lsort -unique -integer -increasing $listResid ];
+	    $selAll delete;
+
+	    # first resid
+	    set residFirst [ lindex $listResid 0 ];
+	    set selFirst   [ atomselect $molID1 "resid $residFirst" ];
+	    set indexFirst [ $selFirst get index ];
+	    set resnFirst  [ $selFirst get resname ];
+	    set resnFirst  [ lsort -unique $resnFirst ];
+	    $selFirst delete;
+
+	    set listTopIndex "";
+	    lappend listTopIndex $indexFirst;
+	    set listTopName "";
+	    lappend listTopName $resnFirst;
 	    
-	    # 2.- topology info
-	    # ------------------
+	    # last resid
+	    if { $lListResname > 1 } { 		
+		set residLast [ lindex $listResid end ];
+		set selLast   [ atomselect $molID1 "resid $residLast" ];
+		set indexLast [ $selLast get index ];
+		set resnLast  [ $selLast get resname ];
+		set resnLast  [ lsort -unique $resnLast ];
+		$selLast delete;
+
+		lappend listTopIndex $indexLast;
+		lappend listTopName  $resnLast;
+	    }
+	    # >>>>>>>>>>>>>>>>
+
+
+	    # 2.- feed topology
+	    # -------------------
 	    
 	    # topology file
 	    set outTOP [ open $outName.top w ];
 	    
-	    # output mass/resname
+	    # mass
 	    puts $outTOP "31  1";
 	    puts $outTOP " ";
 	    puts $outTOP "MASS     1 $atomType    12.01100 C";
 	    puts $outTOP " ";
 	    puts $outTOP "AUTO ANGLES DIHE";
 	    puts $outTOP " ";
-	    puts $outTOP "RESI $resName          0.00";
-	    
-	    # load molecule
-	    mol new $outName.TMP.psf type psf waitfor all;
-	    set molID2  [ molinfo top ];
-	    mol addfile $outName.TMP.pdb type pdb molid $molID2 waitfor all;
-	    
-	    # output atom names
-	    set selAll    [ atomselect $molID2 all ];
-	    set listIndex [ $selAll get index ];
-	    $selAll delete;
-	    
-	    foreach index $listIndex {
-		set  selOne  [ atomselect $molID2 "index $index" ];
-		set  nameOne [ $selOne get name ];
-		puts $outTOP "ATOM $nameOne $atomType      0.00";
-		$selOne delete;
-	    }
-	    
-	    
-	    # create bond list
-	    set bondList "";
-	    
-	    foreach index $listIndex {
-		# find neigh around each index
-		set selOne [ atomselect $molID2 "index $index" ];
-		set neighIndex [ $selOne getbonds ];
-		set neighIndex [ lindex $neighIndex 0 ];
-		$selOne delete;
+
+	    # residues
+	    foreach currIndex $listTopIndex currResName $listTopName {
 		
-		# create a list of all indexes
-		foreach indexB $neighIndex { 
-		    set selA [ atomselect $molID2 "index $index" ];
-		    set selB [ atomselect $molID2 "index $indexB" ];
-		    set nameA [ $selA get name ];
-		    set nameB [ $selB get name ];
-		    
-		    if { $index < $indexB } {
-			lappend bondList "$nameA $nameB";
-		    } elseif { $index > $indexB } {
-			lappend bondList "$nameB $nameA";
-		    } else {
-		    }
-		    
-		    $selA delete;
-		    $selB delete;
+		# header
+		puts $outTOP "RESI $currResName          0.00";
+				
+		# atoms
+		foreach index $currIndex {
+		    set  selOne  [ atomselect $molID1 "index $index" ];
+		    set  nameOne [ $selOne get name ];
+		    puts $outTOP "ATOM $nameOne $atomType      0.00";
+		    $selOne delete;
 		}
+				
+		# create bond list
+		set bondList "";
+		
+		foreach index $currIndex {
+
+		    # find neigh around each index
+		    set selOne     [ atomselect $molID1 "index $index" ];
+		    set neighIndex [ $selOne getbonds ];
+		    set neighIndex [ lindex $neighIndex 0 ];
+		    $selOne delete;
+
+		    set selOne     [ atomselect $molID1 "(index $neighIndex) and (index $currIndex)" ];
+		    set neighIndex [ $selOne get index ];
+		    $selOne delete;
+		
+		    # create a list of all indexes
+		    foreach indexB $neighIndex { 
+			set selA  [ atomselect $molID1 "index $index" ];
+			set selB  [ atomselect $molID1 "index $indexB" ];
+			set nameA [ $selA get name ];
+			set nameB [ $selB get name ];
+			
+			if { $index < $indexB } {
+			    lappend bondList "$nameA $nameB";
+			} elseif { $index > $indexB } {
+			    lappend bondList "$nameB $nameA";
+			} else {
+			}
+			
+			$selA delete;
+			$selB delete;
+		    }
+		}
+		
+		# sort bond list
+		set bondList [ lsort -unique $bondList ];
+		
+		# output bonds
+		foreach valPAIRunique $bondList {
+		    set valA [  lindex $valPAIRunique 0 ];
+		    set valB [  lindex $valPAIRunique 1 ];
+		    puts $outTOP "BOND $valA $valB";
+		}
+		
+		puts $outTOP " ";
+		puts $outTOP " ";
+
+		unset bondList;
 	    }
-	    
-	    # sort bond list
-	    set bondList [ lsort -unique $bondList ];
-	    
-	    # output bonds
-	    foreach valPAIRunique $bondList {
-		set valA [  lindex $valPAIRunique 0 ];
-		set valB [  lindex $valPAIRunique 1 ];
-		puts $outTOP "BOND $valA $valB";
-	    }
-	    
+	    	    
 	    # close topology file;
 	    puts  $outTOP " ";
 	    close $outTOP;
-	    
+	    	    	    
 	    # clear
-	    mol delete $molID2;
-	    unset bondList;
-	    unset listIndex;
-    
+	    mol delete $molID1;
+	    
 	    
 	    
 	    # 3.- create molecule from topology file
-	    # ---------------------------------------
-    
+	    # ---------------------------------------    
 	    package require psfgen
 	    resetpsf
 	    psfcontext reset;
 	    topology $outName.top;
-	    segment  $segName { pdb $outName.TMP.pdb } 
-	    coordpdb $outName.TMP.pdb $segName;
+	    segment  $segName { pdb $pdbFile } 
+	    coordpdb $pdbFile $segName;
 	    regenerate angles dihedrals;
-	    writepsf $outName.psf;
-	    writepdb $outName.pdb;
+	    writepsf $outName.TOP.psf;
+	    writepdb $outName.TOP.pdb;
 	    resetpsf;
 	    psfcontext reset;
 	    
-	    file delete $outName.TMP.psf;
-	    file delete $outName.TMP.pdb;
-	    
-    
+
 	    
 	    # 4.- add PBC info back
 	    # -----------------------
 	    
 	    # load molecule
-	    mol new $outName.psf type psf waitfor all;
-	    set molID3 [ molinfo top ];
-	    mol addfile  $outName.pdb type pdb molid $molID3 waitfor all;
+	    mol new $outName.TOP.psf type psf waitfor all;
+	    set molID2 [ molinfo top ];
+	    mol addfile  $outName.TOP.pdb type pdb molid $molID2 waitfor all;
 	    
 	    # set PBC values
-	    molinfo $molID3 set a $aPBC;
-	    molinfo $molID3 set b $bPBC;
-	    molinfo $molID3 set c $cPBC;
-	    molinfo $molID3 set alpha $alphaPBC;
-	    molinfo $molID3 set beta  $betaPBC;
-	    molinfo $molID3 set gamma $gammaPBC;
+	    molinfo $molID2 set a $aPBC;
+	    molinfo $molID2 set b $bPBC;
+	    molinfo $molID2 set c $cPBC;
+	    molinfo $molID2 set alpha $alphaPBC;
+	    molinfo $molID2 set beta  $betaPBC;
+	    molinfo $molID2 set gamma $gammaPBC;
     
 	    # output molecule
-	    set selAll [ atomselect $molID3 all ];
-	    animate write pdb $outName.pdb sel $selAll waitfor all $molID3;
+	    set selAll [ atomselect $molID2 all ];
+	    animate write pdb $outName.TOP.pdb sel $selAll waitfor all $molID2;
 	    
 	    # clean
-	    mol delete $molID3
+	    mol delete $molID2
 	    $selAll delete;
 	    
 	}
+	
 	
 	
 	# ---------------
@@ -559,26 +648,15 @@ namespace eval ::wccnt:: {
 	# ---------------
 	
 	# create CNT
-	CNTper  $nIndex $mIndex $lengthNM $perZ $outName.NoTop
-	
+	CNTper $nIndex $mIndex $lengthNM $perZ $shiftXYZ $unitCNTnm $segName $resName $atomType $outName
+
 	# create topology
-	CNTtop $outName.NoTop.psf $outName.NoTop.pdb $segName $resName $resID $atomType $outName;
+	CNTtop $outName.psf $outName.pdb $outName;
 
 	# clean
-	file delete  $outName.NoTop.psf;
-	file delete  $outName.NoTop.pdb;
-
-	unset nIndex;
-	unset mIndex;
-	unset lengthNM;
-	unset perZ;
-	unset outName;
-	unset segName;
-	unset resName;
-	unset resID;
-	unset atomType;
-
-	        
+	file delete -force $outName.TOP.psf;
+	file delete -force $outName.TOP.pdb;
+		        
     }   
 }
 
