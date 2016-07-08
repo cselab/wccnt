@@ -1,9 +1,7 @@
 ############################################################
 #
-# This script creates a CNT : PSF, PDB and TOP files
+# This script creates a CNT : PSF, PDB, TOP and PAR files
 #
-# usage:
-# CNTbuild $nIndex $mIndex $lengthNM $perZ $segName $resName $resID $outName 
 #
 
 
@@ -425,7 +423,7 @@ namespace eval ::wccnt:: {
 	
 	
 	
-	proc CNTtop { psfFile pdbFile outName } {
+	proc CNTtoppar { psfFile pdbFile outName } {
 
 	    #
 	    # This script generates a CNT topology
@@ -638,6 +636,51 @@ namespace eval ::wccnt:: {
 	    # clean
 	    mol delete $molID2
 	    $selAll delete;
+
+
+	    
+	    # 5.- create parameter file
+	    # ---------------------------
+
+	    set outPAR [ open $outName.par w ];
+	    	    
+	    puts $outPAR "* This is a reduced version of the CHARMM22 parameter file for CNT";
+	    puts $outPAR "*";
+	    puts $outPAR " ";
+	    puts $outPAR "BONDS";
+	    puts $outPAR "!V(bond) = Kb(b - b0)**2 ";
+	    puts $outPAR "!";
+	    puts $outPAR "!atom type Kb          b0";
+	    puts $outPAR "$atomType $atomType 305.000  1.3750 ";
+	    puts $outPAR " ";
+	    puts $outPAR " ";
+	    puts $outPAR "ANGLES";
+	    puts $outPAR "!V(angle) = Ktheta(Theta - Theta0)**2";
+	    puts $outPAR "!V(Urey-Bradley) = Kub(S - S0)**2 ";
+	    puts $outPAR "! ";
+	    puts $outPAR "!atom types     Ktheta    Theta0   Kub     S0 ";
+	    puts $outPAR "$atomType $atomType $atomType  40.000    120.00   35.00   2.41620";
+	    puts $outPAR " ";
+	    puts $outPAR " ";
+	    puts $outPAR "DIHEDRALS";
+	    puts $outPAR "!V(dihedral) = Kchi(1 + cos(n(chi) - delta)) ";
+	    puts $outPAR "! ";
+	    puts $outPAR "!atom types             Kchi    n   delta ";
+	    puts $outPAR "$atomType $atomType $atomType $atomType  3.1000  2   180.00 ";
+	    puts $outPAR " ";
+	    puts $outPAR " ";
+	    puts $outPAR "NONBONDED nbxmod  5 atom cdiel shift vatom vdistance vswitch - ";
+	    puts $outPAR "cutnb 14.0 ctofnb 12.0 ctonnb 10.0 eps 1.0 e14fac 1.0 wmin 1.5  ";
+	    puts $outPAR "!V(Lennard-Jones) = Eps,i,j\[(Rmin,i,j/ri,j)**12 - 2(Rmin,i,j/ri,j)**6\] ";
+	    puts $outPAR "! ";
+	    puts $outPAR "!atom  ignored    epsilon      Rmin/2 ";
+	    puts $outPAR "$atomType   0.000000  -0.0565     1.8178 ";
+	    puts $outPAR " ";
+	    puts $outPAR " ";
+	    puts $outPAR "END";
+	    puts $outPAR " ";
+
+	    close $outPAR;
 	    
 	}
 	
@@ -651,7 +694,7 @@ namespace eval ::wccnt:: {
 	CNTper $nIndex $mIndex $lengthNM $perZ $shiftXYZ $unitCNTnm $segName $resName $atomType $outName
 
 	# create topology
-	CNTtop $outName.psf $outName.pdb $outName;
+	CNTtoppar $outName.psf $outName.pdb $outName;
 
 	# clean
 	file delete -force $outName.TOP.psf;
