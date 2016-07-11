@@ -18,6 +18,9 @@ proc wccnt { args } {
 	    Convert LAMMPS trj into pos- and vel- DCD
 	     trj2dcd [options...]
 
+	    Convert PSF/PDB and PAR/TOP into DATA/IN
+	     ch2lmp [options...]
+
 	}
 	return
     }
