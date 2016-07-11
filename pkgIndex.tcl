@@ -8,4 +8,5 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded wccnt 0.1 [list source [file join $dir wccntCNToscillate.tcl]]\n[list source [file join $dir wccntrj2dcd.tcl]]\n[list source [file join $dir wccntCNTbuild.tcl]]\n[list source [file join $dir wccnt.tcl]]\n[list source [file join $dir wccntMSDwater.tcl]]
+package ifneeded wccnt 0.1 "set env(WCCNTDIR) [list $dir];  [list source [file join $dir wccntch2lmp.tcl]]\n [list source [file join $dir wccntCNToscillate.tcl]]\n[list source [file join $dir wccnttrj2dcd.tcl]]\n[list source [file join $dir wccntCNTbuild.tcl]]\n[list source [file join $dir wccnt.tcl]]\n[list source [file join $dir wccntMSDwater.tcl]]"
+
